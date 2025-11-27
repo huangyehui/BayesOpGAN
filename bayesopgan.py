@@ -14,7 +14,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from bayesian_optimize import BayesianMode
-from models_resnet import ResNet
 import numpy as np
 #from torchvision import models
 
@@ -81,7 +80,8 @@ class Generator(nn.Module):
         self.layer2 = nn.Sequential(*block(200, 400))
         self.layer3 = nn.Sequential(*block(400, 800))
         self.layer4 = nn.Sequential(*block(800, 1600))
-        # self.layer6 = nn.Sequential(*block(2048, 4096))
+        # self.layer6 = nn.Sequential(
+#raman X轴最大值3800*block(2048, 4096))
         self.last = nn.Linear(1600, int(np.prod(img_shape)))
         self.active = nn.Softplus()
 
@@ -228,8 +228,6 @@ coordinate_x_loss = torch.nn.CrossEntropyLoss()
 # Initialize generator and discriminator
 generator = Generator()
 discriminator = Discriminator()
-#raman X轴最大值3800
-resnet2d = ResNet([2, 2, 2, 2],  512)
 #res101 = models.resnet18(pretrained=True)
 #numFit = res101.fc.in_features
 #res101.fc = nn.Linear(numFit, 512)
@@ -237,14 +235,13 @@ resnet2d = ResNet([2, 2, 2, 2],  512)
 if cuda:
     generator.cuda()
     discriminator.cuda()
-    resnet2d.cuda()
     adversarial_loss.cuda()
     coordinate_x_loss.cuda()
     
 
 # Configure data loader
 os.makedirs("../../data/mnist", exist_ok=True)
-dataset = RuffDataset('data/Beryl')
+dataset = RuffDataset('dataset/Beryl')
 dataloader = torch.utils.data.DataLoader(
     dataset,
     batch_size=opt.batch_size,

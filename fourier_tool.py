@@ -11,7 +11,6 @@ from PIL import Image
 import os
 import matplotlib.pyplot as plt
 from sklearn.ensemble import IsolationForest
-from outlier_check import detect_outliers
 import shutil
 
 
@@ -136,7 +135,6 @@ def cale_raw_fourier_distance(x, rruff_ffts, x1, fft_synthesis):
 
 #论文里正式计算傅立叶距离方法
 def cale_batch_fft_dis_with_rruff(src_path, target_path, is_normal):
-    print(f"calc {src_path} 的傅里叶距离")
     x, y = rruff_source_dataset_fourier(target_path)
     files = os.listdir(src_path)
     total_ffts = []
@@ -147,6 +145,7 @@ def cale_batch_fft_dis_with_rruff(src_path, target_path, is_normal):
         total_ffts.append(fft_dis)
         ffts_file.append(file_name)
     batch_fft_distance = np.mean(total_ffts)
+    print(f"calc {src_path} 的傅里叶距离:{batch_fft_distance}")
     return batch_fft_distance
 
 
@@ -268,5 +267,4 @@ def fourier_distance_rruff(path_rruff, path_comp):
 
 
 if __name__ == '__main__':
-
-    cale_batch_fft_dis_with_rruff('/media/lenovo/9A0093CA0093ABAF/work/ai/Raman_G&C/experiment/shengcheng/0.9/divide', './dataset/Beryl', False)
+    cale_batch_fft_dis_with_rruff('./out/synthesis', './out/beryl', False)
