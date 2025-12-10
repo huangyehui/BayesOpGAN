@@ -18,5 +18,6 @@ python fourier_tool.py
 
 ## Results
 <img width="640" height="480" alt="109600_15 txt" src="https://github.com/user-attachments/assets/a69dd1b9-cb43-4c82-a107-229cfebe6cfd" />
+
 ## Reference
  
