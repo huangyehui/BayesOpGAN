@@ -102,35 +102,19 @@ def cale_raw_fourier_distance(x, rruff_ffts, x1, fft_synthesis):
             amplitude_ruff = amplitude_ruff[padding_l:len(x_rruff) - padding_r]
 
         # 将幅值归一化
-        # amp_synthesis_normal = (
-        #     amplitude_synthesis - amplitude_synthesis.min()) / (
-        #         amplitude_synthesis.max() - amplitude_synthesis.min())
-        # amp_rruff_normal = (amplitude_ruff - amplitude_ruff.min()) / (
-        #     amplitude_ruff.max() - amplitude_ruff.min())
         amp_synthesis_normal = amplitude_synthesis / np.sum(
             amplitude_synthesis)
         amp_rruff_normal = amplitude_ruff / np.sum(amplitude_ruff)
 
         # 计算相对熵（kl）
-        #module = np.abs(fft_minus)
-        # log_amp_synthesis = np.log(amp_synthesis_normal)
-        # temp = amp_rruff_normal * log_amp_synthesis
         kl = np.sum(amp_synthesis_normal *
                     np.log(amp_synthesis_normal / amp_rruff_normal))
         # mean = np.mean(abs_ampl_minus)
         fft_ce.append(kl)
         idx += 1
-    # 去除离群点
-    # normal, outliers = detect_outliers(fft_mean)
-    # res = np.mean(normal)
     res = np.mean(fft_ce)
     print('光谱{}的傅里叶距离为{}'.format(idx, res))
     return res
-
-
-
-
-
 
 
 #论文里正式计算傅立叶距离方法
@@ -149,48 +133,12 @@ def cale_batch_fft_dis_with_rruff(src_path, target_path, is_normal):
     return batch_fft_distance
 
 
-
-
-# def cale_batch_fft_dis(path):
-#     x, y = source_dataset_fourier('./dataset/Beryl')
-#     files = os.listdir(path)
-#     total_ffts = []
-#     for file_name in files:
-#         synthesis_file = path + '/' + file_name
-#         #print('start cale file:', synthesis_file)
-#         fft_dis = cale_fourier_distance(x, y, synthesis_file, False)
-#         #print('batch:', synthesis_file, ', fft_dis:', fft_dis)
-#         #fft_dis = batch_fourier_distance('./dataset/beryl', synthesis_file)
-#         total_ffts.append(fft_dis)
-#     batch_fft_distance = np.mean(total_ffts)
-#     return batch_fft_distance
-
-# def batch_fourier_distance(path_rruff, path_synthesis):
-#     dataset = MyDataset()
-#     rruff_mean = exp_fft(path_rruff)
-#     files = os.listdir(path_synthesis)
-#     ffts = []
-#     for file in files:
-#         x, y, size = dataset.to_data(file)
-#         fft_y = fft(y)
-#         amplitude = np.abs(fft_y)
-#         ffts.append(amplitude)
-#     #计算方差
-
-
 # 求生成数据和rruff之间的傅立叶距离
 def fourier_distance(path_rruff, path_comp):
     ruff = RuffDataset()
     x, y, size = ruff.to_data(path_rruff)
 
     fft_ruff = fft(y)  #快速傅里叶变换
-    # print(fft_ruff)
-    # print('\n实部')
-    # print(fft_ruff.real)
-    # print('\n虚部')
-    # print(fft_ruff.imag)
-
-    #modulus = abs(fft_ruff)
 
     gan = MyDataset()
     x1, y1, size = gan.to_data(path_comp, 0)
@@ -199,14 +147,6 @@ def fourier_distance(path_rruff, path_comp):
     amplitude_gan = np.abs(fft_gan)
     amplitude_ruff = np.abs(fft_ruff)
 
-    # plt.figure()
-    # plt.plot(x, amplitude_ruff)
-    # plt.title('rruff')
-
-    # plt.figure()
-    # plt.plot(x1, amplitude_gan)
-    # plt.title(path_comp)
-    #plt.show()
 
     x_comp = min(len(x), len(x1))
     amplitude_gan = amplitude_gan[0:x_comp]
@@ -224,13 +164,6 @@ def fourier_distance_rruff(path_rruff, path_comp):
     x, y, size = ruff.to_data(path_rruff)
 
     fft_ruff = fft(y)  #快速傅里叶变换
-    # print(fft_ruff)
-    # print('\n实部')
-    # print(fft_ruff.real)
-    # print('\n虚部')
-    # print(fft_ruff.imag)
-
-    #modulus = abs(fft_ruff)
 
     gan = MyDataset()
     x1, y1, size = ruff.to_data(path_comp)

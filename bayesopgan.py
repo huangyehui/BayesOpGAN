@@ -55,11 +55,6 @@ img_shape = (opt.channels, opt.img_size, opt.img_size)
 cuda = True if torch.cuda.is_available() else False
 
 
-def do_bayes(input, labels):
-    aux_model.fit(input.float(), labels.float())
-    # 预测
-    pred = aux_model.ac_func()
-
 
 class Generator(nn.Module):
     def __init__(self):
@@ -80,34 +75,11 @@ class Generator(nn.Module):
         self.layer2 = nn.Sequential(*block(200, 400))
         self.layer3 = nn.Sequential(*block(400, 800))
         self.layer4 = nn.Sequential(*block(800, 1600))
-        # self.layer6 = nn.Sequential(
-#raman X轴最大值3800*block(2048, 4096))
         self.last = nn.Linear(1600, int(np.prod(img_shape)))
         self.active = nn.Softplus()
 
-        self.model = nn.Sequential(
-            *block(opt.latent_dim, 128, normalize=True),
-            *block(128, 256),
-            *block(256, 512),
-            *block(512, 1024),
-            *block(1024, 2048),
-            *block(2048, 4096),
-            #*block(4096, 8192),
-            #需要生成横坐标 [64, 8100]
-            nn.Linear(4096, int(np.prod(img_shape))),
-            #改为relu
-            nn.Softplus()
-            # nn.Tanh()
-        )
         self.upsample = nn.Upsample(scale_factor=2, mode='linear')
 
-    # def layer(in_feat, out_feat, normalize=True):
-    #         layers = [nn.Linear(in_feat, out_feat)]
-    #         if normalize:
-    #             layers.append(nn.BatchNorm1d(out_feat, 0.8))
-    #         # cancat
-    #         layers.append(nn.LeakyReLU(0.2, inplace=True))
-    #         return layers
 
     def smooth_up_sample(self, z):
         z = z.view(z.size(0), 1, z.size(1))
@@ -131,11 +103,6 @@ class Generator(nn.Module):
 
         data = self.layer1(z)
      
-        # dim = int(data.size(1) * alpha)
-        # z_dim = data.size(1) - dim
-        # detail = data[:, 0:dim]
-        # base = z[:, 0:z_dim]
-        # data = torch.cat([detail, base], dim=1)
         z = data
       
 
@@ -151,19 +118,6 @@ class Generator(nn.Module):
         data = self.layer4(z)
         data = self.progress_grow(z, data)
         z = data
-
-
-        # data = self.layer5(z)
-        # data = self.progress_grow(z, data)
-        # z = data
-
-
-        # exclude last
-        # data = self.layer6(z)
-
-        #data = self.progress_grow(z, data)
-        
-        #
         data = self.last(data)
         data = self.active(data)
 
@@ -176,9 +130,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         self.model = nn.Sequential(
-            
-            # nn.Linear(int(np.prod(img_shape)), 2048),
-            # nn.LeakyReLU(0.2, inplace=True),
+        
             nn.Linear(1600, 1024),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, 512),
@@ -192,28 +144,8 @@ class Discriminator(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, img):
-        # 必须add 横坐标
-        # to do..
-        # [64,2048]
         img_flat = img.view(img.size(0), -1)
-        # size = img_flat.size(1)
-        # end = 2*(size)
-        # img_combine = torch.zeros(img_flat.size(0), img_flat.size(1)).cuda()
-        # for i in range(img.size(0)):
-        #     # x+img
-        #     # start = x[i].item()
-        #     # print(start)
-        #     # temp = torch.arange(start, start + end, 2)
-        #     # print(img_flat[i])
-        #     # print(temp)
-        #     # img_combine[i] = temp.cuda() + img_flat[i]
-        #     # 
-        #     img_combine[i] = img_flat[i]
-       
         out = self.model(img_flat)
-        # 并且输出分数作为y值
-        # print("discriminator res={}".format(validity))
-        # 下采样
         feature = out
         out = self.down_sample(feature)
         validity = self.sigmoid(out)
@@ -228,9 +160,6 @@ coordinate_x_loss = torch.nn.CrossEntropyLoss()
 # Initialize generator and discriminator
 generator = Generator()
 discriminator = Discriminator()
-#res101 = models.resnet18(pretrained=True)
-#numFit = res101.fc.in_features
-#res101.fc = nn.Linear(numFit, 512)
 
 if cuda:
     generator.cuda()
@@ -259,18 +188,11 @@ Tensor = torch.cuda.DoubleTensor if cuda else torch.DoubleTensor
 # ----------
 #  Training
 # ----------
-if __name__ == '__main__':  # 不加这句就会报错
-    # z = Tensor([[4, 2, 3], [1, 5, 6]])
-    # d = Tensor([[4, 4, 4, 4, 4, 4], [4, 4, 4, 4, 4, 4]])
-    # print(z)
-    
-    # x = generator.progress_grow(z, d)
-
-
+if __name__ == '__main__': 
+   
     epsilon = 0.1
     bayes_mode = BayesianMode()
     bayes_mode_gt = BayesianMode()
-    # bayesstack = {'suggest':[], 'score':[]}
     bayesstack = {}
     bayesstack['suggest'] = []
     bayesstack['score'] = []
@@ -287,9 +209,6 @@ if __name__ == '__main__':  # 不加这句就会报错
 
     for epoch in range(opt.n_epochs):
         for i, (imgs, coordinate_x) in enumerate(dataloader):
-            # suggest = []
-            # score = []
-            # Adversarial ground truths
             print('imgs')
             print(imgs.size())
             print('coord_x')
@@ -325,13 +244,11 @@ if __name__ == '__main__':  # 不加这句就会报错
                 0, 1, (imgs.shape[0], opt.latent_dim))))
             gen_imgs = generator(z)
             fea, gen_imgs_res = discriminator(gen_imgs)
-            # input_data_resnet = gen_imgs.view(gen_imgs.size(0), 64, 64)
-            # x_data = resnet2d(input_data_resnet.cuda())
+
             #需要进一步分类
             print('coordinate_x:')
             print(coordinate_x.size())
-           # x_loss = coordinate_x_loss(x_data, coordinate_x.cuda())
-            # Loss measures generator's ability to fool the discriminator
+
             g_loss = adversarial_loss(gen_imgs_res, valid)
            # _, x_wave = torch.max(x_data, 1)
 
@@ -346,10 +263,7 @@ if __name__ == '__main__':  # 不加这句就会报错
 
                     gp_gt = bayes_mode_gt.fit(gt_feature, valid)
                     argmax_gt_x = bayes_mode_gt.ac_func(gp_gt)
-                    # 计算二者的均方差
-                    # tensor_g_x = torch.Tensor(argmax_g_x).cuda()
-                    # tensor_gt_x = torch.Tensor(argmax_gt_x).cuda()
-
+                  
                     bo_loss = F.mse_loss(argmax_g_x, argmax_gt_x)
                 except Exception as e:
                     print("!!!!!get exception:{}".format(str(e)))
@@ -397,10 +311,7 @@ if __name__ == '__main__':  # 不加这句就会报错
             dataloader_size = len(dataloader)
             batches_done = epoch * dataloader_size + i
             if batches_done % opt.sample_interval == 0:
-                # save_image(gen_imgs.data[:25], "./images/%d.png" %
-                #            batches_done, nrow=5, normalize=True)
                 arr_raman = gen_imgs.view(gen_imgs.size(0), -1)
-                # arr_x_data = x_wave.tolist()
 
                 for i in range(gen_imgs.size(0)):
                     filename = "./raman/%d_%d.txt" % (batches_done,i)
